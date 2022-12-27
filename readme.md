@@ -11,14 +11,14 @@ To address this issue, we propose SCOUT that uses a natural language processing 
 To run this program, following steps must be followed. <br/>
 
 1. Docker image for web service layer must be created. <br/>
-<pre><code>cd ws docker <br/>build -t scout-ws .</code></pre>
+<pre><code>docker build -t scout-ws .</code></pre>
 
 2. Docker image for web interface must be created.
-<pre><code>cd wp docker <br/>build -t scout-wp .</code></pre>
+<pre><code>docker build -t scout-wp .</code></pre>
 
 
 3. Docker image for RDBMS must be created.
-<pre><code>cd sqlserver docker <br/>build -t scout-sqlserver .</code></pre>
+<pre><code>docker build -t scout-sqlserver .</code></pre>
 
 
 4. After creating all required images, system will run on Docker.
