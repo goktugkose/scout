@@ -1,0 +1,23 @@
+﻿@model Project
+@{
+    ViewBag.Title = "addProject";
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+}
+@using (Html.BeginForm("addProject", "Admin", FormMethod.Post))
+{
+    <div class="card">
+        <div class="card-header">
+            Add New Project
+        </div>
+        <div class="card-body">
+            <div class="form-group">
+                <label for="name">Project Name</label>
+                @Html.TextBoxFor(x => Model.projectName, new { @class = "form-control", @type = "text", @id = "name", @placeholder = "Enter a new project name...", @required = "required"  })
+            </div>
+
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-dark btn-block">Submit</button>
+        </div>
+    </div>
+}

@@ -1,0 +1,73 @@
+version: '3.9'
+volumes:
+    sqlsystem:
+    sqldata:
+    sqllog:
+    sqlbackup:
+    props:
+services:
+  neo4j:
+    container_name: scout-neo4j
+    image: neo4j:latest
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.*,algo.*
+      - NEO4J_dbms_default__listen__address=0.0.0.0
+      - NEO4J_dbms_allow__upgrade=true
+      - NEO4J_dbms_default__database=neo4j
+      - NEO4J_AUTH=neo4j/graph1234
+    volumes:
+      - ./plugins:/plugins
+      - ./data:/data
+      - ./import:/import
+  db:
+    build:
+      context: .
+      dockerfile: ./sqlserver/Dockerfile
+    container_name: scout-sqlserver
+    ports:
+      - "80:1433"
+    env_file:
+      - ./sqlserver/sqlserver.env
+    volumes: 
+      - sqlsystem:/var/opt/mssql/
+      - sqldata:/var/opt/sqlserver/data
+      - sqllog:/var/opt/sqlserver/log
+      - sqlbackup:/var/opt/sqlserver/backup
+  webapp:
+    container_name: scout-wp
+    image: scout-wp
+    ports:
+      - "45517:5000"
+    depends_on:
+      - db
+    volumes:
+      - ./wp/appsettings.json:/app/appsettings.json
+      - ./wp/appsettings.Development.json:/app/appsettings.Development.json
+  webservice:
+   container_name: scout-ws
+   security_opt:
+     - seccomp:unconfined
+     - apparmor:unconfined
+   privileged: true
+   image: scout-ws
+   command: bash -c "pip install numpy==1.21.6 && gunicorn --workers 2 --threads 4 -k gthread app:app --bind 0.0.0.0:80"
+   environment:
+     - "PYTHONUNBUFFERED=1"
+   ports:
+     - "5001:80"
+   volumes:
+     - ./project_files/models:/ws-user-stories/models
+     - ./project_files/nltk_data:/ws-user-stories/nltk_data
+     - ./ws/app.py:/ws-user-stories/app.py
+     - ./ws/graph_module.py:/ws-user-stories/graph_module.py
+     - ./ws/graph_op.py:/ws-user-stories/graph_op.py
+     - ./ws/helper_functions.py:/ws-user-stories/helper_functions.py
+     - ./ws/noun_phrase_extraction_module.py:/ws-user-stories/noun_phrase_extraction_module.py
+     - ./ws/suggestion_module.py:/ws-user-stories/suggestion_module.py
+     - ./ws/project_graph_module.py:/ws-user-stories/project_graph_module.py
+     - ./ws/user_graph_module.py:/ws-user-stories/user_graph_module.py
+     - ./ws/config.json:/ws-user-stories/config.json    
+     - ./ws/props:/ws-user-stories/props

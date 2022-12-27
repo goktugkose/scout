@@ -1,0 +1,19 @@
+﻿@model Story
+@using (Html.BeginForm("addUserStory", "Home", FormMethod.Post))
+{
+    <div class="card card-primary">
+        <div class="card-header">Insert User Story</div>
+        <div class="card-body d-grid gap-2">
+            <div class="row">
+                <div style="height:10em;line-height:1;">
+                    <div class="form-group">
+                        @Html.TextAreaFor(x => x.userStory, new {@placeholder="ex. As a student, I want to study so that I can graduate.", @class = "form-control", @style = "min-width:100%;height:10em;line-height:1;", @required = "required" })
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer d-grid">
+            <button type="submit" class="btn btn-primary btn-block">Add</button>
+        </div>
+    </div>
+}

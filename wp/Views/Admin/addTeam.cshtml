@@ -1,0 +1,24 @@
+﻿@model Team
+@{
+    ViewBag.Title = "addTeam";
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+}
+
+@using (Html.BeginForm("addTeam", "Admin", FormMethod.Post, new { @style = "" }))
+{
+    <div class="card">
+        <div class="card-header">
+            Add New Team
+        </div>
+        <div class="card-body">
+            <div class="form-group">
+                <label for="name">Team Name</label>
+                @Html.TextBoxFor(x => Model.teamName, new { @class = "form-control", @type = "text", @id = "name", @placeholder = "Enter a new team name...", @required = "required" })
+            </div>
+
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-dark btn-block">Submit</button>
+        </div>
+    </div>
+}

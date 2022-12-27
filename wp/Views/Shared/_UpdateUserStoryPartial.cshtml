@@ -1,0 +1,30 @@
+﻿@model Story
+@using (Html.BeginForm("updateUserStory", "Home", FormMethod.Post))
+{
+    <div class="card card-primary">
+        <div class="card-header">Update User Story</div>
+        <div class="card-body d-grid gap-2">
+            <div class="row">
+                <div style="height:10em;line-height:1;">
+                    <div class="form-group">
+                        @Html.HiddenFor(x => x.storyID)
+                        @Html.HiddenFor(x => x.projectID)
+                        @Html.HiddenFor(x => x.userID)
+                        @Html.TextAreaFor(x => x.userStory, new { @class = "form-control", @style = "min-width:100%;height:10em;line-height:1;", @required = "required" })
+                    </div>
+                 </div>
+            </div>
+        </div>
+        <div class="card-footer">
+            <div class="row">
+                <div class="col d-grid">
+                    <button type="submit" class="btn btn-primary btn-block">Update</button>
+                </div>
+                <div class="col d-grid">
+                    @Html.ActionLink("Cancel", "Index", "Home", new { @id = 0 }, new { @class = "btn btn-danger" })
+                </div>
+            </div>
+        </div>
+    </div>
+}
+

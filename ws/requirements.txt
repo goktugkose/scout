@@ -1,0 +1,15 @@
+torch==1.11.0+cpu
+torchvision==0.12.0+cpu
+nltk
+spacy==3.2
+networkx 
+scikit-learn
+pyodbc
+keybert
+textacy
+Flask
+pandas
+neo4j
+gunicorn
+--find-links=https://download.pytorch.org/whl/torch_stable.html
+https://github.com/explosion/spacy-models/releases/download/en_core_web_md-3.2.0/en_core_web_md-3.2.0.tar.gz#egg=en_core_web_md

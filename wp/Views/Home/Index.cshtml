@@ -1,0 +1,444 @@
+﻿@model Tuple<List<Story>, List<SuggestionDetail>>
+@{
+    ViewBag.Title = "Home Page";
+    Layout = "/Views/Shared/_Layout.cshtml";
+    UserInfo u = (UserInfo)ViewBag.userInfo;
+    UserInfo user = HttpContextAccessor.HttpContext.Session.GetObject<UserInfo>("user");
+    string importError = (string)TempData["importError"];
+    string wrongSentence = (string)TempData["wrongSentence"];
+}
+<div class="row mb-3">
+    <div class="col">
+        <label>Active User: @u.user</label> <br />
+        <label>Project: @u.project</label> <br />
+    </div>
+    <div class="col-6 text-center">
+        <span>
+            <span class="text-decoration-underline">Accepted Format</span> <br /><kbd style="--bs-bg-opacity: .9;" class="bg-success">As a [type of user], I want to [perform some task] <br /> (optional) so that [achieve some goal].</kbd>
+        </span>
+    </div>
+    <div class="col text-end">
+        <label id="commits" style="font-weight:bold;"></label>
+    </div>
+</div>
+@* Experiment Setup Start *@
+<div class="row">
+    <div class="col-md-12">
+        <div class="row-mb-3">
+            <div class="col">
+                <div class="card card-primary">
+                    <div class="card-header">Scenario</div>
+                    <div id="scenario_text" class="card-body">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@* Experiment Setup End *@
+<div class="row mb-3 mt-3">
+    <div class="col-md-4">
+        <div class="row mb-3">
+            <div class="col">
+                <div class="card card-primary">
+                    <div class="card-header">
+                        Quality Suggestions
+                    </div>
+                    <div class="card-body d-grid">
+                        <button id="get_suggestions" class="btn btn-primary">Get Quality Suggestions</button>
+                        <hr />
+                        <div id="suggestion_response"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col">
+                <div class="card card-primary">
+                    <div class="card-header d-grid">
+                        Completeness Suggestions <br />
+                    </div>
+                    <div class="card-body d-grid">
+                        <button id="get_all_suggestions" class="btn btn-success">Get Completeness Suggestions</button>
+                        <hr />
+                        <ol id="all_suggestion_response"></ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="row mb-3">
+            <div class="col">
+                @if (ViewBag.flag)
+                {
+                    @await Html.PartialAsync("_AddUserStoryPartial", new Story());
+                }
+                else
+                {
+                    
+                    @await Html.PartialAsync("_UpdateUserStoryPartial", (Story)ViewBag.story);
+                }
+            </div>
+            <div class="col">
+                <div class="card card-primary">
+                    <div class="card-header">
+                        Group Chat
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div style="height:10em;line-height:1;overflow:auto;" class="col-sm-12" id="notificationPanel">
+
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="row d-grid">
+                            <div class="input-group ">
+                                <input id="notification" type="text" class="form-control" placeholder="Type a message" aria-label="Type a message" aria-describedby="send_notification">
+                                <div class="input-group-append">
+                                    <button class="btn btn-dark" type="button" id="send_notification"><i class="la la-paper-plane"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row gap-3">
+            <div class="col-lg-12">
+                <div class="card card-primary">
+                    <div class="card-header">
+                        <div class="align-items-center">
+                            User Stories
+                            @Html.ActionLink(" ", "Logout", "Login", null, new { @class = "btn btn-default la la-2x la-sign-out-alt float-end", @style = "color:red;" }) @Html.ActionLink(" ", "exportUserStories", "Home", new { @type = "csv" }, new { @class = "btn btn-default la la-2x la-file-csv float-end" }) @Html.ActionLink(" ", "exportUserStories", "Home", new { @type = "json" }, new { @class = "btn btn-default la la-2x la-file-code float-end" })
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table">
+                            <table class="table table-responsive">
+                                <thead>
+                                    <tr>
+                                        <th class="col-1">ID</th>
+                                        <th class="col-9">User Story</th>
+                                        <th class="col-2">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (Story story in Model.Item1)
+                                    {
+                                        <tr>
+                                            <td>@story.storyID</td>
+                                            <td id="user_story_@story.storyID">@story.userStory</td>
+                                            <td>
+                                                @Html.ActionLink(" ", "updateUserStory", "Home", new { @id = story.storyID }, new { @class = "btn btn-default la la-2x la-edit" })
+                                                @Html.ActionLink(" ", "deleteUserStory", "Home", new { @id = story.storyID }, new { @class = "btn btn-default la la-2x la-trash" })
+                                            </td>
+                                        </tr>
+                                    }
+
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    function gatherScenario(){
+        console.log("Gathering scenario.");
+        return $.ajax({
+            url: "/Message/returnScenario?scenarioGroup=@u.scenarioGroup",
+            cache: false,
+            success: function (response) {     
+                $("#scenario_text").html(response);
+                console.log("Gathering scenario completed.");
+            }
+        });
+    }
+    $(document).ready(function () {
+        gatherScenario();
+    });
+</script>
+@if (importError != null)
+{
+    <script>
+            const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer)
+                toast.addEventListener('mouseleave', Swal.resumeTimer)
+            }
+        });
+
+        Toast.fire({
+            icon: 'error',
+            title: '@importError'
+        });
+        $("#userStory").text("@wrongSentence");
+    </script>
+}
+else
+{
+    <script>
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer)
+                toast.addEventListener('mouseleave', Swal.resumeTimer)
+            }
+        });
+        Toast.fire({
+            icon: 'success',
+            title: 'Editor loaded successfully.'
+        });
+    </script>
+}
+<script>
+    function tooltip() {
+        console.log("Tooltips generated.");
+        $('.qtooltip').tooltip({'html': true });
+        console.log("Tooltip generation completed.");
+    }
+
+    function ui_ops_all_suggestion(all_suggestions) {
+        var suggestionDetails = @Html.Raw(Json.Serialize(Model.Item2));
+        ul_str = "";
+        for (x = 0; x < all_suggestions.length; x++){
+            if (all_suggestions[x].suggestionGroup == "lucky" ||
+                all_suggestions[x].suggestionGroup == "pop-zero"
+                ) {
+                ul_str = "";
+                for (y = 0; y < all_suggestions[x].term.length; y++) {
+                    ul_str += "<li><i onclick=\"ignoreSuggestion('-1 ',' " + all_suggestions[x].term[y].replaceAll('\'','\\\'') + " ',' " + all_suggestions[x].suggestionGroup +" ');\" class='la la-eye-slash'></i> " + all_suggestions[x].term[y] + "</li>";
+                }
+            }
+            else if (all_suggestions[x].suggestionGroup == "complete") {
+                var p = $.grep(suggestionDetails, function (n, i) {
+                    return n.suggestionGroup == "complete";
+                })
+                //ul_str += "<li>" + p[0].suggestionName + "</li>";
+            }
+            else {
+                ul_str = "";
+                for (y = 0; y < Object.keys(all_suggestions[x].term).length; y++) {
+                    ul_nest_str = "";
+                    for (z = 0; z < Object.values(all_suggestions[x].term)[y].length; z++) {
+                        ul_nest_str += "<li><i onclick=\"ignoreSuggestion('-1 ',' " + Object.values(all_suggestions[x].term)[y][z].replaceAll('\'','\\\'') + " ',' " + all_suggestions[x].suggestionGroup + " ',' " + Object.keys(all_suggestions[x].term)[y]+" ');\" class='la la-eye-slash'></i> " + Object.values(all_suggestions[x].term)[y][z] + "</li>";
+                    }
+                    if (ul_nest_str != "") {
+                    ul_str += "<li>" + Object.keys(all_suggestions[x].term)[y] + "<ul>" + ul_nest_str + "</ul>" + "</li>";
+                }
+                }
+            }
+            var ul = "";
+            if (ul_str != "") {
+                ul = "<ul>" + ul_str + "</ul>";
+            }
+            var p = $.grep(suggestionDetails, function (n, i) {
+                return n.suggestionGroup == all_suggestions[x].suggestionGroup;
+          })
+            var li = $("<li><b>" + p[0].suggestionName + "</b> <i class='qtooltip la la-info-circle' data-toggle='tooltip' title='" + p[0].suggestionExp + "<br> <em>Hint: " + p[0].suggestionHint+ "</em>'></i>"
+                + ul + "</li>");
+            $("#all_suggestion_response").append(li);
+       }
+        tooltip();
+        localStorage.setItem("all_suggestions", JSON.stringify(all_suggestions));
+        console.log("UI Ops complete for completeness suggestions.");
+    }
+
+    function ui_ops(suggestions) {
+       var suggestionDetails = @Html.Raw(Json.Serialize(Model.Item2));
+       $.each(suggestions, function (i, item) {
+           const re = /[.,\/#!$%\^&\*;:{}=\-_`~()]/g;
+           var p = $.grep(suggestionDetails, function (n, i) {
+               return n.suggestionGroup == item.suggestionGroup;
+           })
+               var op = -1;
+            if (item.type < 3) {
+                var $this = $("#" + item.storyID);
+                //(item.type == 0) ? $this.css('color', 'red') : $this.css('color', 'DarkOrange');
+                color = '';
+                if (item.type == 0) {
+                    color = 'red';
+                }
+                else if (item.type == 1) {
+                    color = 'DarkOrange';
+                }
+                else {
+                    color = 'dodgerblue';
+                }
+
+                txt = $this.html().replace(/<\/?[^>]+>/gi, '').toString();
+                txt_alt = $this.html().toString();
+                txt_tmp = txt.toLowerCase().replace(re, "");
+
+                elements = item.term.split(" ");
+                startIndex = txt_tmp.indexOf(elements[0]);
+                endIndex = txt_tmp.indexOf(elements.slice(-1)[0], startIndex) + elements.slice(-1)[0].length;
+
+                lng = (txt.slice(0, endIndex).match(re) || []).length;
+                startIndex += lng - 1;
+                endIndex += lng;
+                tmp_len = endIndex - startIndex
+
+                //if (txt.slice(startIndex, endIndex)[0] != elements[0][0]) {
+                //    while (txt.slice(startIndex, endIndex)[0] != elements[0][0]) {
+                //        startIndex += 1
+                //  }
+                //}
+                if (tmp_len > item.term.length) {
+                    //console.log("Annotation error (short): " + item.storyID + " term: '" + elements + "' '" + txt.slice(startIndex, endIndex) + "' ex:" + item.term.length + " c:" + tmp_len);
+
+                    if (tmp_len - item.term.length > elements.length) {
+                        startIndex += tmp_len - item.term.length;
+                    }
+                    diff = (txt_alt.length - txt.length);
+                    if (txt_alt.slice(startIndex+diff, endIndex+diff) == txt.slice(startIndex, endIndex)) {
+                        //console.log(item.storyID + " POS " + diff);
+                        op = 0;
+                    }
+                    else if (txt_alt.slice(startIndex-diff, endIndex-diff) == txt.slice(startIndex, endIndex)) {
+                        //console.log(item.storyID + " NEG " + diff)
+                        op = 1;
+                    }
+                    else if(txt_alt.slice(startIndex+item.term.length+1, endIndex+item.term.length+1) == txt.slice(startIndex, endIndex)){
+                        //console.log(item.storyID + " LEN " + diff)
+                        op = 0;
+                        diff = item.term.length + 1;
+                    }
+                    //console.log(item.storyID+" SS: " + startIndex);
+                    //console.log("Fix (short): "+ item.storyID + " term: '"+elements+ "' '"+txt.slice(startIndex, endIndex)+"' ex:" + item.term.length + " c:" + tmp_len);
+                }
+                else if (tmp_len < item.term.length) {
+                    //console.log("Annotation error (long): " + item.storyID + " term: '"+item.term+ "' '"+txt.slice(startIndex, endIndex)+"' ex:" + item.term.length + " c:" + tmp_len);
+                    endIndex += item.term.length - tmp_len
+                if (txt.slice(startIndex, endIndex).slice(-1)[0] != elements.slice(-1)[0].slice(-1)[0]) {
+                    while (txt.slice(startIndex, endIndex).slice(-1)[0] != elements.slice(-1)[0].slice(-1)[0] && endIndex + 1 <= item.term.length) {
+                        endIndex += 1
+                  }
+                }
+                    //console.log("Fix (long): "+ item.storyID + " term: '"+elements+ "' '"+txt.slice(startIndex, endIndex)+"' ex:" + item.term.length + " c:" + tmp_len);
+                }
+                //console.log(item.storyID + " diff" + diff)
+                if (op == 0) {
+                    $this.html(txt_alt.slice(0, startIndex + diff) + "<b style='color:" + color + "'>" + txt_alt.slice(startIndex + diff, endIndex + diff) + "</b>" + txt_alt.slice(endIndex + diff));
+                }
+                else if (op == 1) {
+                    $this.html(txt_alt.slice(0, startIndex - diff) + "<b style='color:" + color + "'>" + txt_alt.slice(startIndex - diff, endIndex - diff) + "</b>" + txt_alt.slice(endIndex - diff));
+                }
+                }
+        });
+        $.each(suggestions, function (i, item) {
+            idx = suggestions.indexOf(item)
+            color = '';
+                if (item.type == 0) {
+                    color = 'red';
+                }
+                else if (item.type == 1) {
+                    color = 'DarkOrange';
+                }
+                else {
+                    color = 'dodgerblue';
+                }
+            var sub_ul = null;
+            if (idx == 0) {
+                ol = $("<ol id='main_ol'></ol>");
+                $("#suggestion_response").append(ol);
+            }
+            if (idx == 0 || (suggestions[idx - 1].suggestionGroup != suggestions[idx].suggestionGroup)) {
+                var p = $.grep(suggestionDetails, function (n, i) {
+                    return n.suggestionGroup == suggestions[idx].suggestionGroup;
+                });
+                $("#main_ol").append("<li><b style='color:"+color+"'>" + p[0].suggestionName + "</b> <i class='qtooltip la la-info-circle' data-toggle='tooltip' title='" + p[0].suggestionExp + "<br> <em>Hint: " + p[0].suggestionHint + "</em>'></i>" +
+                    "<ul id='" + suggestions[idx].suggestionGroup + "'></ul></li>");
+            }
+            sub_ul = $("#" + item.suggestionGroup);
+            id = '"' + item.storyID + '"';
+            var badges = "";
+            if (item.suggestionGroup == "crud") {
+                if (item.visible) {
+                    lst = JSON.parse(item.sentence);
+                    ops = ["C", "R", "U", "D"];
+                    tmp = [];
+                    exist = lst[0]
+                    lack = lst[1]
+                    for (var i = 0; i < exist.length; i++) {
+                        tmp[ops.indexOf(exist[i])] = "<span class='badge bg-success'>" + exist[i] + "</span>";
+                    }
+                    for (var i = 0; i < lack.length; i++) {
+                        tmp[ops.indexOf(lack[i])] = "<span class='badge bg-danger'>"+lack[i]+"</span>";
+                    }
+                    badges = tmp.join(" ");
+                    strs = ["<a style='font-weight:bold;' href='#' onclick='event.preventDefault(); document.getElementById(" + id + ").scrollIntoView(true);'>" + item.storyID.replaceAll("_", " ").replaceAll("user story ","#") + "</a>"];
+                    for (var i = 0; i < suggestions.length; i++) {
+                        if (suggestions[i].visible == false && suggestions[i].term == item.term) {
+                            sub_id = '"' + suggestions[i].storyID + '"';
+                            strs.push("<a style='font-weight:bold;' href='#' onclick='event.preventDefault(); document.getElementById(" + sub_id + ").scrollIntoView(true);'>" + suggestions[i].storyID.replaceAll("_", " ").replaceAll("user story ", "#") + "</a>");
+                        }
+                    }
+                    str = strs.join(", ")
+                    if (strs.length > 1) {
+                        str = "["+str+"]"
+                    }
+                    $(sub_ul).append("<li><i onclick=\"ignoreSuggestion('" + item.storyID.replaceAll("_", " " ).replaceAll("user story ", " ") + " ',' " + item.term.replaceAll('\'','\\\'') + " ',' " +item.suggestionGroup +" ');\" class='la la-eye-slash'></i><i style='font-weight:bold;font-style:italic;'>\"" + item.term + "\" </i> in "+str+" <br>" + badges+ "</li>");
+                }
+            }
+            else if (item.suggestionGroup == "atomic") {
+                str = item.term.replaceAll(" and ", " <span style='font-weight:bold;' class='badge bg-primary'>and</span> ").replaceAll(" or "," <span class='badge bg-primary'>or</span> ")
+                $(sub_ul).append("<li><i onclick=\"ignoreSuggestion('" + item.storyID.replaceAll("_", " " ).replaceAll("user story ", " ") + " ',' " + item.term.replaceAll('\'','\\\'') + " ',' " +item.suggestionGroup +" ');\" class='la la-eye-slash'></i><i style='font-weight:bold;font-style:italic;'>\"" + str + "\" </i> in <a style='font-weight:bold;' href='#' onclick='event.preventDefault(); document.getElementById(" + id + ").scrollIntoView(true);'>" + item.storyID.replaceAll("_", " ").replaceAll("user story ","#") + "</a>" + "</li>");
+            }
+            else {
+                $(sub_ul).append("<li><i onclick=\"ignoreSuggestion('" + item.storyID.replaceAll("_", " " ).replaceAll("user story ", " ") + " ',' " + item.term.replaceAll('\'','\\\'') + " ',' " +item.suggestionGroup +" ');\" class='la la-eye-slash'></i><i style='font-weight:bold;font-style:italic;'>\"" + item.term + "\" </i> in <a style='font-weight:bold;' href='#' onclick='event.preventDefault(); document.getElementById(" + id + ").scrollIntoView(true);'>" + item.storyID.replaceAll("_", " ").replaceAll("user story ","#") + "</a>" + "</li>");
+            }
+
+        });
+        tooltip();
+        localStorage.setItem("suggestions", JSON.stringify(suggestions));
+        console.log("UI Ops complete for quality suggestions.");
+    }
+
+    function ignoreSuggestion(storyId, term, suggestionGroup, mainTerm) {
+        var url = "";
+        if (storyId != -1 || mainTerm === undefined) {
+            url = "/Message/setIgnoredSuggestion?userID=@user.user&projectID=@user.project&"
+            +"storyId="+storyId+"&term="+term+"&suggestionGroup="+suggestionGroup
+        }
+        else {
+            url = "/Message/setIgnoredSuggestion?userID=@user.user&projectID=@user.project&"
+            +"storyId="+storyId+"&term="+term+"&suggestionGroup="+suggestionGroup+"&mainTerm="+mainTerm
+        }
+        $.ajax({
+            url: url,
+            cache: false,
+            success: function () {
+                const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+                }
+            });
+
+            Toast.fire({
+                icon: 'success',
+                title: 'Your feedback is noted!'
+        });
+            }
+        });
+    }
+</script>

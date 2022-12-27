@@ -1,0 +1,28 @@
+﻿@model User
+@{
+    ViewBag.Title = "addUser";
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+}
+
+@using (Html.BeginForm("addUser", "Admin", FormMethod.Post, new { @style = "" }))
+{
+    <div class="card">
+        <div class="card-header">
+            Add New User
+        </div>
+        <div class="card-body">
+            <div class="form-group">
+                <label for="name">User Name</label>
+                @Html.TextBoxFor(x => Model.userName, new { @class = "form-control", @type = "text", @id = "name", @placeholder = "Enter a new user name...", @required = "required" })
+            </div>
+            <div class="form-group">
+                <label for="name">Team Name</label>
+                @Html.DropDownListFor(x => Model.teamID, (IEnumerable<SelectListItem>)ViewBag.teams,"Select a team...", new { @class = "form-control", @type = "text", @id = "name", @required = "required" })
+            </div>
+
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-dark btn-block">Submit</button>
+        </div>
+    </div>
+}

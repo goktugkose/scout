@@ -1,0 +1,11 @@
+{
+    "sql_server_address": "scout-sqlserver",
+    "sql_server_driver": "{ODBC Driver 17 for SQL Server}",
+    "sql_server_db": "UserStoryExperiment3",
+    "sql_server_user": "sa",
+    "sql_server_password": "Sysadmin123.",
+    "neo4j_address": "bolt://scout-neo4j:7687/",
+    "neo4j_db": "neo4j",
+    "neo4j_user": "neo4j",
+    "neo4j_password": "graph1234"
+}

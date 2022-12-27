@@ -1,0 +1,47 @@
+﻿@model  wp_user_stories.Views.Login.ViewModels.UserInfo
+@{
+    ViewBag.Title = "Go To Editor";
+    Layout = "~/Views/Shared/_LoginLayout.cshtml";
+    string err = (string)TempData["loginError"];
+}
+@using (Html.BeginForm("Index", "Login", FormMethod.Post))
+{
+    <div class="card">
+        <div class="card-header">Enter your information</div>
+        <div class="card-body">
+            <div class="form-group">
+                <label for="user">User ID</label>
+                @Html.DropDownListFor(x => Model.user,(IEnumerable<SelectListItem>)ViewBag.users,"Please select your username", new { @class = "form-control", @type = "text", @id = "user", @required="required" })
+            </div>
+            <div class="form-group">
+                <label for="project" class="form-label">Project</label>
+                @Html.DropDownListFor(x => Model.project, (IEnumerable<SelectListItem>)ViewBag.projects,"Please select a project", new { @class = "form-control", @type = "text", @id = "project", @required="required" })
+            </div>    
+        </div>
+        <div class="card-footer d-grid">
+            <button class="btn btn-dark" type="submit">Go To Editor</button>
+        </div>
+    </div>
+    }
+@if (err != null)
+{
+    <script>
+        console.log("@err");
+         const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+                }
+            })
+
+            Toast.fire({
+                icon: 'error',
+                title: '@err'
+            })
+    </script>
+}

@@ -1,0 +1,30 @@
+@model UserProject
+@{
+    ViewBag.Title = "Authorization";
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+}
+@using (Html.BeginForm("addUserProject", "Admin", FormMethod.Post))
+{
+    <div class="card">
+        <div class="card-header">
+            Authorize User
+        </div>
+        <div class="card-body">
+            <div class="form-group">
+                <label for="name">User</label>
+                @Html.DropDownListFor(x => Model.userID, (IEnumerable<SelectListItem>)ViewBag.userList,"Select a user...", new { @class = "form-control", @type = "text", @id = "name", @required = "required" })
+            </div>
+            <div class="form-group">
+                <label for="project">Project</label>
+                @Html.DropDownListFor(x => Model.projectID, (IEnumerable<SelectListItem>)ViewBag.projectList,"Select a project...", new { @class = "form-control", @type = "text", @id = "project", @required = "required" })
+            </div>
+             <div class="form-group">
+                <label for="scenario">Scenario</label>
+                @Html.DropDownListFor(x => Model.scenarioGroup, (IEnumerable<SelectListItem>)ViewBag.scenarioList, "Select a scenario...", new { @class = "form-control", @type = "text", @id = "scenario", @required = "required" })
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-dark btn-block">Authorize</button>
+        </div>
+    </div>
+}

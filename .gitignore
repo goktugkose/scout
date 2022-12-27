@@ -1,0 +1,8 @@
+ws/nltk_data/*
+ws/models/*
+ws/data
+project_files/*
+data
+wp/Migrations
+wp/bin
+wp/obj

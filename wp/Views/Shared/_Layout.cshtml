@@ -1,0 +1,270 @@
+﻿@{
+    UserInfo u = (UserInfo)ViewBag.userInfo;
+    UserInfo user = HttpContextAccessor.HttpContext.Session.GetObject<UserInfo>("user");
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewBag.Title</title>
+    @*<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.16.1/vis.css" type="text/css" />*@
+    <link href="~/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="~/css/sweetalert2.min.css" rel="stylesheet" />
+    <script src="~/js/sweetalert2.all.min.js"></script>
+    <script src="~/js/jquery-3.4.1.min.js"></script>
+    <script src="~/js/signalr.min.js"></script>
+@*    <script src="~/SignalR/Hubs" type="text/javascript"></script>
+*@    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/line-awesome/1.3.0/line-awesome/css/line-awesome.min.css" integrity="sha512-vebUliqxrVkBy3gucMhClmyQP9On/HAWQdKDXRaAlb/FKuTbxkjPKUyqVOxAcGwFDka79eTF+YXwfke1h3/wfg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body>
+    <div class="container-fluid">
+        @RenderBody()
+    </div>
+    <script src="~/js/bootstrap.min.js"></script>
+    <script src="~/js/bootstrap.bundle.min.js"></script>
+    @*<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.16.1/vis-network.min.js"></script>*@
+</body>
+</html>
+@* Chat Operations *@
+<script>
+    function notifReceived() {
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 2000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer)
+                toast.addEventListener('mouseleave', Swal.resumeTimer)
+            }
+        });
+
+        Toast.fire({
+            icon: 'info',
+            title: 'You have a new notification!'
+        });
+    }
+
+    function saveMessages(message) {
+        $.ajax({
+            url: "/Message/saveMessages?userId=@user.user&userName=@u.user&projectId=@user.project&message=" + message,
+            cache: false,
+            success: function (response) {
+                console.log("Message saved.");
+            }
+        });
+    }
+
+    function get_notifications(){
+        $.ajax({
+            url: "/Message/getChatMessages?project_id=@user.project",
+            cache: false,
+            success: function (response) {
+                for (x = 0; x < response.length; x++){
+                    $("#notificationPanel").prepend("<span style='font-size:11px;'>" + response[x].userName + " - " + response[x].time + " : </span><b style='font-size:12px;'>" + response[x].message + " </b><br />");
+                }
+            }
+        });
+    }
+
+    var qs = "combinedId=@user.user" + "_" + "@user.project";
+    const connection = new signalR.HubConnectionBuilder()  
+        .withUrl("/messageHub?"+qs)  
+        .build(); 
+
+    //This method receive the message and Append to our list  
+    connection.on("receiveNotification", (username, message, time) => { 
+        if (username != "@u.user") {
+               notifReceived();
+           }
+        $("#notificationPanel").prepend("<span style='font-size:11px;'>" + username + " - " + time + " : </span><b style='font-size:12px;'>"  + message + "</b><br />");
+    }); 
+
+    connection.start().then(() => {console.log("SignalR started.", qs);}).catch(err => console.err(err));  
+
+    $("#send_notification").click(function () {
+        var message = $("#notification").val();
+        if (message != "") {
+            connection.invoke("sendNotification","@u.user", "@user.project", message).catch(err => console.err(err.toString()));
+            $("#notification").val("");
+            saveMessages(message)
+        }
+    });
+</script>
+<script>
+    suggestions = [];
+    all_suggestions = [];
+
+    $(document).ready(function () {
+        if (localStorage.suggestions != null) {
+            var localData = localStorage.suggestions;
+            var suggestions_ = localData ? JSON.parse(localData) : [];
+            console.log("Suggestions are loaded from localStorage.");
+            ui_ops(suggestions_);
+        }
+        if (localStorage.all_suggestions != null) {
+            var localAllData = localStorage.all_suggestions;
+            var all_suggestions_ = localAllData ? JSON.parse(localAllData) : [];
+            console.log("All suggestions are loaded from localStorage.");
+            ui_ops_all_suggestion(all_suggestions_);
+        }
+        get_notifications();
+    });
+
+    function runGraphModule() {
+        return $.ajax({
+            url: '/Message/runGraphModule?user_id=@user.user&project_id=@user.project',
+            method: 'GET',
+            success: function (data) {
+                console.log("Graph modules executed.");
+            }
+        });
+    }
+    function get_unrelated_suggestions() {
+        suggestions = [];
+        return $.ajax({
+            url: '/Message/getSuggestions?user_id=@user.user&project_id=@user.project',
+            method: 'GET',
+            success: function (data) {
+                tmp = [];
+                tmp = JSON.parse(data);
+                for (x = 0; x < tmp.length; x++){
+                    suggestions.push(tmp[x]);
+                }
+            }
+        });
+    }
+    function get_all_suggestions() {
+        all_suggestions = [];
+        return $.ajax({
+            url: '/Message/getAllSuggestions?user_id=@user.user&project_id=@user.project',
+            method: 'GET',
+            success: function (data) {
+                tmp = [];
+                tmp = JSON.parse(data);
+                for (x = 0; x < tmp.length; x++){
+                    all_suggestions.push(tmp[x]);
+                }
+            }
+        });
+    }
+
+    function gather_all_suggestions() {
+        $.when(runGraphModule()).done(function () {
+        $.when(get_all_suggestions()).done(function () {
+            $("#all_suggestion_response").html("");
+            console.log("Completeness suggestions generated from neo4j.");
+            ui_ops_all_suggestion(all_suggestions);
+            Swal.close();
+
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+                }
+            });
+
+            Toast.fire({
+                icon: 'success',
+                title: 'All suggestions collected!'
+            });
+        });
+            });
+              }
+
+    function gather_suggestions() {
+        $.when(runGraphModule()).done(function () {
+            $.when(get_unrelated_suggestions()).done(function () {
+                $("#suggestion_response").html("");
+                console.log("Quality suggestions generated from neo4j.");
+                $('.table b').css("color", "black");
+                $('.table b').contents().unwrap();
+                ui_ops(suggestions);
+                Swal.close();
+
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true,
+                    didOpen: (toast) => {
+                        toast.addEventListener('mouseenter', Swal.stopTimer)
+                        toast.addEventListener('mouseleave', Swal.resumeTimer)
+                    }
+                });
+
+                Toast.fire({
+                    icon: 'success',
+                    title: 'Suggestions collected!'
+                });
+            });
+        });
+    }
+
+    $("#get_suggestions").click(function () {
+        var us_count = $('.table-responsive tbody tr').length;
+        if (us_count > 0){
+            Swal.fire({
+                title: 'Please wait!',
+                text: 'Gathering quality suggestions...',
+                icon: 'info',
+                showConfirmButton: false,
+                allowOutsideClick: false
+            })
+            gather_suggestions();
+        }
+        else{
+            showAlertZeroUs();
+        }
+    });
+
+    $("#get_all_suggestions").click(function () {
+        var us_count = $('.table-responsive tbody tr').length;
+        if (us_count > 0){
+            Swal.fire({
+                title: 'Please wait!',
+                text: 'Gathering completeness suggestions...',
+                icon: 'info',
+                showConfirmButton: false,
+                allowOutsideClick: false
+            })
+            gather_all_suggestions();
+        }
+        else{
+            showAlertZeroUs();
+        }
+    });
+
+    function showAlertZeroUs(){
+        const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true,
+                    didOpen: (toast) => {
+                        toast.addEventListener('mouseenter', Swal.stopTimer)
+                        toast.addEventListener('mouseleave', Swal.resumeTimer)
+                    }
+                });
+
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Please add user stories before requesting suggestions.'
+                });
+    }
+
+    function deleteLocalStorage() {
+        localStorage.removeItem("all_suggestions");
+        localStorage.removeItem("suggestions");
+        location.reload();     
+    }
+</script>
