@@ -116,7 +116,7 @@ def generate_crud_sql(user_id, project_id):
   Server={get_config("sql_server_address")};\
   Database={get_config("sql_server_db")};\
   uid={get_config("sql_server_user")};pwd={get_config("sql_server_password")};')
-  query = "SELECT storyID, verbPhrases FROM Stories where isDeleted = 0 and userID = {user_id} and projectID = {project_id} and verbPhrases <> '{{}}'".format(user_id=user_id, project_id=project_id) \
+  query = "SELECT storyID, verbPhrases FROM Stories where isDeleted = 0 and projectID = {project_id} and verbPhrases <> '{{}}'".format(user_id=user_id, project_id=project_id) \
     if user_id != -1 else "SELECT storyID, verbPhrases FROM Stories where isDeleted = 0 and projectID = {project_id} and verbPhrases <> '{{}}'".format(project_id=project_id)
   try:
     with conn.cursor().execute(query) as cursor:
